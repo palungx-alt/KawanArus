@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Kawan Arus - Rekonsiliasi Bank</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    
+    <style>
+        :root { --primary: #1e40af; --bg-body: #f8fafc; --surface: #ffffff; --text-main: #0f172a; --text-sec: #64748b; --border: #e2e8f0; --radius: 16px; --success: #10b981; --danger: #ef4444; --warning: #f59e0b; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background: var(--bg-body); color: var(--text-main); min-height: 100vh; padding-bottom: 40px; }
+        
+        .top-bar { background: var(--surface); padding: 16px 20px; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+        .brand-area { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
+        .btn-back { background: var(--bg-body); border: none; padding: 10px; border-radius: 12px; cursor: pointer; color: var(--text-main); font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; transition: 0.2s; flex-shrink: 0; }
+        .btn-back:hover { background: var(--border); }
+        .page-title h1 { font-size: 18px; font-weight: 700; margin: 0; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .page-title p { font-size: 12px; color: var(--text-sec); margin-top: 2px; }
+        .action-buttons { display: flex; gap: 8px; flex-shrink: 0; }
+        .btn-action { background: var(--primary); color: white; border: none; padding: 10px 16px; border-radius: 12px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s; font-size: 13px; white-space: nowrap; }
+        .btn-action:hover { opacity: 0.9; }
+        .btn-outline { background: white; color: var(--text-main); border: 1px solid var(--border); }
+        .btn-outline:hover { background: var(--bg-body); }
+        
+        .container { max-width: 1200px; margin: 20px auto; padding: 0 16px; }
+        
+        /* UPLOAD AREA */
+        .upload-card { 
+            background: var(--surface); padding: 30px; border-radius: var(--radius); 
+            border: 2px dashed var(--border); text-align: center; margin-bottom: 24px; 
+            transition: 0.2s; cursor: pointer;
+        }
+        .upload-card:hover, .upload-card.dragover { border-color: var(--primary); background: #eff6ff; }
+        .upload-icon { font-size: 40px; color: var(--primary); margin-bottom: 16px; }
+        .upload-text { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+        .upload-sub { font-size: 13px; color: var(--text-sec); }
+        #fileInput { display: none; }
+
+        /* SUMMARY CARDS RESPONSIVE */
+        .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 24px; }
+        .summary-card { background: var(--surface); padding: 16px; border-radius: 12px; border: 1px solid var(--border); }
+        .summary-label { font-size: 11px; color: var(--text-sec); text-transform: uppercase; font-weight: 700; margin-bottom: 6px; letter-spacing: 0.5px; }
+        .summary-value { font-size: 20px; font-weight: 800; word-break: break-word; }
+        .text-success { color: var(--success); }
+        .text-danger { color: var(--danger); }
+        .text-warning { color: var(--warning); }
+
+        /* TABLE & CARD DUAL VIEW */
+        .desktop-table { display: none; }
+        table { width: 100%; border-collapse: collapse; min-width: 800px; background: var(--surface); border-radius: var(--radius); overflow: hidden; box-shadow: 0 4px 20px -2px rgba(0,0,0,0.05); border: 1px solid var(--border); }
+        th { text-align: left; padding: 14px 16px; font-size: 12px; text-transform: uppercase; color: var(--text-sec); border-bottom: 2px solid var(--border); font-weight: 700; white-space: nowrap; }
+        td { padding: 14px 16px; border-bottom: 1px solid var(--border); font-size: 14px; vertical-align: middle; }
+        tr:last-child td { border-bottom: none; }
+        tr.matched td { background: #ecfdf5; }
+        tr.unmatched td { background: #fffbeb; }
+        
+        .badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; white-space: nowrap; }
+        .badge-matched { background: #d1fae5; color: #065f46; }
+        .badge-unmatched { background: #fef3c7; color: #92400e; }
+        
+        .btn-sm { padding: 6px 12px; font-size: 12px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; transition: 0.2s; white-space: nowrap; }
+        .btn-journal { background: var(--success); color: white; }
+        .btn-journal:hover { opacity: 0.9; }
+
+        /* MOBILE CARD LIST */
+        .mobile-cards { display: flex; flex-direction: column; gap: 12px; }
+        .recon-card { 
+            background: var(--surface); border-radius: 12px; padding: 16px; 
+            border: 1px solid var(--border); display: flex; flex-direction: column; gap: 12px;
+        }
+        .recon-card.matched { border-left: 4px solid var(--success); background: #f0fdf4; }
+        .recon-card.unmatched { border-left: 4px solid var(--warning); background: #fffbeb; }
+        
+        .card-row { display: flex; justify-content: space-between; align-items: flex-start; }
+        .card-label { font-size: 11px; color: var(--text-sec); text-transform: uppercase; font-weight: 600; margin-bottom: 4px; }
+        .card-val { font-size: 14px; font-weight: 600; color: var(--text-main); word-break: break-word; }
+        .card-amount { font-size: 18px; font-weight: 800; }
+        
+        @media (min-width: 769px) {
+            .mobile-cards { display: none; }
+            .desktop-table { display: block; }
+            .btn-action span { display: inline; }
+        }
+        @media (max-width: 768px) {
+            .desktop-table { display: none; }
+            .mobile-cards { display: flex; }
+            .btn-action span { display: none; }
+            .btn-action { padding: 10px 12px; }
+            .summary-grid { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="top-bar no-print">
+        <div class="brand-area">
+            <button onclick="window.location.href='dashboard.html'" class="btn-back"><i class="fas fa-arrow-left"></i></button>
+            <img src="assets/logo.png" alt="Logo Kawan Arus" style="width:32px;" onerror="this.style.display='none'">
+            <div class="page-title">
+                <h1>Rekonsiliasi Bank</h1>
+                <p>Cocokkan Buku vs Mutasi Bank</p>
+            </div>
+        </div>
+        <div class="action-buttons">
+            <button class="btn-action btn-outline" onclick="resetRecon()"><i class="fas fa-redo"></i> <span>Reset</span></button>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- UPLOAD AREA -->
+        <div class="upload-card" id="dropZone" onclick="document.getElementById('fileInput').click()">
+            <div class="upload-icon"><i class="fas fa-cloud-upload-alt"></i></div>
+            <div class="upload-text">Klik atau Seret File Mutasi Bank Di Sini</div>
+            <div class="upload-sub">Format: CSV atau Excel (.xlsx)</div>
+            <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" onchange="handleFile(this.files[0])">
+        </div>
+
+        <!-- SUMMARY CARDS -->
+        <div class="summary-grid">
+            <div class="summary-card">
+                <div class="summary-label">Saldo Buku</div>
+                <div class="summary-value" id="sumBook">Rp 0</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">Saldo Bank</div>
+                <div class="summary-value" id="sumBank">Rp 0</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">Selisih</div>
+                <div class="summary-value text-danger" id="sumDiff">Rp 0</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">Status Match</div>
+                <div class="summary-value text-success" id="sumStatus">0%</div>
+            </div>
+        </div>
+
+        <!-- DESKTOP TABLE -->
+        <div class="desktop-table">
+            <table id="reconTable">
+                <thead>
+                    <tr>
+                        <th>Tanggal</th>
+                        <th>Keterangan</th>
+                        <th class="text-right">Nominal</th>
+                        <th>Sumber</th>
+                        <th>Status</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="reconBody">
+                    <tr><td colspan="6" style="text-align:center; padding:40px; color:var(--text-sec);">Upload file mutasi bank untuk memulai rekonsiliasi</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- MOBILE CARDS -->
+        <div class="mobile-cards" id="mobileReconList">
+            <div style="text-align:center; padding:40px; color:var(--text-sec);">Upload file mutasi bank untuk memulai rekonsiliasi</div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+
+        const firebaseConfig = { apiKey: "AIzaSyAc12QQPnjqlaNmIzPl2OqfTrC0HP2YCWg", authDomain: "finance-raj.firebaseapp.com", projectId: "finance-raj", storageBucket: "finance-raj.firebasestorage.app", messagingSenderId: "138468278392", appId: "1:138468278392:web:215731466beb7f89566d8d", measurementId: "G-BMG4L7P2DP" };
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        
+        // URL API Kawan Arus
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbzOovU96VtKpu4iAHQ30T1hRmNFzl0pkrbM5lGzX-SOGAO__bFzeWwYU71AB_-rf2-T/exec';
+
+        let bookTransactions = [];
+        let bankTransactions = [];
+        let reconData = [];
+
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) { window.location.href = 'index.html'; return; }
+            await loadBookTransactions();
+        });
+
+        async function loadBookTransactions() {
+            try {
+                // Menggunakan JSONP untuk kompatibilitas file lokal
+                const cbName = 'cb_recon_' + Date.now();
+                const p = new Promise((resolve) => {
+                    window[cbName] = (data) => { resolve(data); delete window[cbName]; };
+                    const s = document.createElement('script');
+                    s.src = `${GAS_URL}?action=getJurnal&callback=${cbName}`;
+                    document.body.appendChild(s);
+                });
+
+                const data = await p;
+                
+                // Filter hanya transaksi Kas/Bank (sesuaikan kode COA Anda)
+                // Asumsi struktur array dari backend: tx[3]=Akun Debit, tx[8]=Debit, tx[9]=Kredit
+                bookTransactions = (data.data || []).filter(tx => 
+                    ['1-1100', '1-1200'].includes(String(tx[3]).trim())
+                ).map(tx => ({
+                    date: tx[1], desc: tx[2], amount: parseNumber(tx[7]), 
+                    id: tx[0], matched: false, source: 'book'
+                }));
+                updateSummary();
+                renderRecon();
+            } catch(e) { console.error(e); }
+        }
+
+        // DRAG & DROP HANDLER
+        const dropZone = document.getElementById('dropZone');
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault(); dropZone.classList.remove('dragover');
+            if(e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+        });
+
+        function handleFile(file) {
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, {type:'array'});
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet, {header:1});
+                
+                // Parse Bank Data (Asumsi kolom: Tanggal, Keterangan, Nominal)
+                bankTransactions = jsonData.slice(1).map(row => ({
+                    date: row[0] || new Date(), 
+                    desc: row[1] || '-', 
+                    amount: parseFloat(row[2]) || 0, 
+                    source: 'bank', matched: false
+                })).filter(t => !isNaN(t.amount) && t.amount !== 0);
+
+                performAutoMatching();
+                renderRecon();
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function performAutoMatching() {
+            reconData = [...bookTransactions.map(t => ({...t})), ...bankTransactions];
+            
+            // Reset match status first
+            reconData.forEach(item => item.matched = false);
+
+            for(let i=0; i<reconData.length; i++) {
+                if(reconData[i].matched) continue;
+                
+                for(let j=i+1; j<reconData.length; j++) {
+                    if(reconData[j].matched) continue;
+                    
+                    // Must be different sources (one book, one bank)
+                    if(reconData[i].source === reconData[j].source) continue;
+
+                    const diffAmount = Math.abs(reconData[i].amount - reconData[j].amount);
+                    const diffDays = Math.abs(new Date(reconData[i].date) - new Date(reconData[j].date)) / (1000 * 60 * 60 * 24);
+                    
+                    // Tolerance: Rp 100 and 3 days
+                    if(diffAmount < 100 && diffDays <= 3) {
+                        reconData[i].matched = true;
+                        reconData[j].matched = true;
+                        break; 
+                    }
+                }
+            }
+            updateSummary();
+        }
+
+        function renderRecon() {
+            const tbody = document.getElementById('reconBody');
+            const mobileList = document.getElementById('mobileReconList');
+            
+            if(reconData.length === 0 && bankTransactions.length === 0) {
+                const emptyHtml = '<div style="text-align:center; padding:40px; color:var(--text-sec);">Upload file mutasi bank untuk memulai rekonsiliasi</div>';
+                tbody.innerHTML = `<tr><td colspan="6">${emptyHtml}</td></tr>`;
+                mobileList.innerHTML = emptyHtml;
+                return;
+            }
+            
+            // Sort by date desc
+            const sortedData = [...reconData].sort((a,b) => new Date(b.date) - new Date(a.date));
+
+            // Render Desktop Table
+            tbody.innerHTML = sortedData.map(item => {
+                const statusClass = item.matched ? 'matched' : 'unmatched';
+                const badge = item.matched ? '<span class="badge badge-matched">Matched</span>' : '<span class="badge badge-unmatched">Unmatched</span>';
+                const actionBtn = !item.matched && item.source === 'bank' 
+                    ? `<button class="btn-sm btn-journal" onclick="createJournal('${escapeHtml(item.desc)}', ${item.amount})"><i class="fas fa-plus"></i> Input Jurnal</button>` 
+                    : '-';
+                    
+                return `
+                    <tr class="${statusClass}">
+                        <td>${new Date(item.date).toLocaleDateString('id-ID')}</td>
+                        <td>${item.desc}</td>
+                        <td class="text-right font-bold">${formatRupiah(Math.abs(item.amount))}</td>
+                        <td>${item.source === 'book' ? '📒 Buku' : '🏦 Bank'}</td>
+                        <td>${badge}</td>
+                        <td>${actionBtn}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            // Render Mobile Cards
+            mobileList.innerHTML = sortedData.map(item => {
+                const cardClass = item.matched ? 'matched' : 'unmatched';
+                const statusText = item.matched ? '✅ Cocok' : '⚠️ Belum Cocok';
+                const actionBtn = !item.matched && item.source === 'bank' 
+                    ? `<button class="btn-sm btn-journal" style="width:100%; margin-top:8px;" onclick="createJournal('${escapeHtml(item.desc)}', ${item.amount})"><i class="fas fa-plus"></i> Input ke Jurnal</button>` 
+                    : '';
+                    
+                return `
+                    <div class="recon-card ${cardClass}">
+                        <div class="card-row">
+                            <div>
+                                <div class="card-label">Tanggal</div>
+                                <div class="card-val">${new Date(item.date).toLocaleDateString('id-ID')}</div>
+                            </div>
+                            <div style="text-align:right;">
+                                <div class="card-label">Status</div>
+                                <div class="card-val" style="color:${item.matched ? 'var(--success)' : 'var(--warning)'}">${statusText}</div>
+                            </div>
+                        </div>
+                        <div class="card-row">
+                            <div style="flex:1; margin-right:12px;">
+                                <div class="card-label">Keterangan</div>
+                                <div class="card-val">${item.desc}</div>
+                            </div>
+                            <div style="text-align:right;">
+                                <div class="card-label">Nominal</div>
+                                <div class="card-amount">${formatRupiah(Math.abs(item.amount))}</div>
+                                <div style="font-size:11px; color:var(--text-sec); margin-top:4px;">${item.source === 'book' ? 'Dari Buku' : 'Dari Bank'}</div>
+                            </div>
+                        </div>
+                        ${actionBtn}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateSummary() {
+            const bookTotal = bookTransactions.reduce((s,t) => s + t.amount, 0);
+            const bankTotal = bankTransactions.reduce((s,t) => s + t.amount, 0);
+            
+            // Count unique matched pairs
+            const matchedItems = reconData.filter(t => t.matched);
+            const matchedPairs = matchedItems.length / 2; 
+            const totalPossiblePairs = Math.min(bookTransactions.length, bankTransactions.length);
+            const matchPercent = totalPossiblePairs > 0 ? Math.round((matchedPairs / totalPossiblePairs) * 100) : 0;
+
+            document.getElementById('sumBook').textContent = formatRupiah(bookTotal);
+            document.getElementById('sumBank').textContent = formatRupiah(bankTotal);
+            
+            const diff = bookTotal - bankTotal;
+            const diffEl = document.getElementById('sumDiff');
+            diffEl.textContent = formatRupiah(diff);
+            diffEl.className = `summary-value ${Math.abs(diff) < 1000 ? 'text-success' : 'text-danger'}`;
+            
+            document.getElementById('sumStatus').textContent = `${matchPercent}%`;
+            document.getElementById('sumStatus').className = `summary-value ${matchPercent === 100 ? 'text-success' : (matchPercent > 50 ? 'text-warning' : 'text-danger')}`;
+        }
+
+        window.createJournal = async function(desc, amount) {
+            // Menggunakan key 'kawanArusUser'
+            const user = JSON.parse(localStorage.getItem('kawanArusUser'));
+            if(!confirm(`Buat jurnal otomatis untuk:\n"${desc}"\nsebesar ${formatRupiah(amount)}?`)) return;
+            
+            // Determine debit/credit based on sign
+            const isMoneyIn = amount > 0; 
+            
+            const payload = {
+                action: 'addJurnalFromWeb',
+                data: {
+                    tanggal: new Date().toISOString().split('T')[0],
+                    noBukti: 'RECON-AUTO-' + Date.now().toString().slice(-4),
+                    keterangan: `Rekonsiliasi: ${desc}`,
+                    inputBy: user.email, inputByName: user.fullName || user.nama,
+                    items: [{
+                        code: isMoneyIn ? '1-1200' : '5-1000', 
+                        name: isMoneyIn ? 'Bank (Rekening Utama)' : 'Beban Operasional Langsung',
+                        debit: isMoneyIn ? amount : 0,
+                        credit: isMoneyIn ? 0 : amount,
+                        type: isMoneyIn ? 'debit' : 'kredit'
+                    }]
+                }
+            };
+
+            try {
+                const res = await fetch(GAS_URL, { method:'POST', body:JSON.stringify(payload) });
+                const result = await res.json();
+                
+                if(result.success) {
+                    alert("✅ Jurnal berhasil dibuat!");
+                    await loadBookTransactions(); // Refresh book data to update matching
+                } else { alert("Error: " + result.message); }
+            } catch(e) { alert("Gagal: " + e.message); }
+        }
+
+        window.resetRecon = function() {
+            if(confirm("Reset semua data rekonsiliasi? File upload akan dihapus.")) {
+                bankTransactions = [];
+                reconData = [];
+                document.getElementById('fileInput').value = '';
+                renderRecon();
+                updateSummary();
+            }
+        }
+
+        function parseNumber(val) { if(!val) return 0; let s=String(val).trim(); if(s.includes(',')) s=s.replace(/\./g,'').replace(/,/g,'.'); const n=parseFloat(s); return isNaN(n)?0:n; }
+        function formatRupiah(num) { const n=Number(num); if(isNaN(n)) return '0'; const p=n.toFixed(2).split('.'); let int=p[0], dec=p[1], fmt='', cnt=0; for(let i=int.length-1;i>=0;i--){fmt=int[i]+fmt;cnt++;if(cnt%3===0&&i!==0)fmt='.'+fmt;} return fmt+','+dec; }
+        function escapeHtml(text) { return String(text).replace(/'/g, "\\'").replace(/"/g, '&quot;'); }
+    </script>
+</body>
+</html>
