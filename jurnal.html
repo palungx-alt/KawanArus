@@ -173,16 +173,15 @@
         import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 
-        // ✅ GANTI DENGAN YANG BARU INI:
-const firebaseConfig = {
-    apiKey: "AIzaSyBcvWifKsakt37g6AFFd6U3rYrdTrkHqjw",
-    authDomain: "kawanarus.firebaseapp.com",
-    projectId: "kawanarus",
-    storageBucket: "kawanarus.firebasestorage.app",
-    messagingSenderId: "228773711599",
-    appId: "1:228773711599:web:92a76d505c440f4c5e151a",
-    measurementId: "G-7E4DL0CJ75"
-};
+        const firebaseConfig = { 
+            apiKey: "AIzaSyBcvWifKsakt37g6AFFd6U3rYrdTrkHqjw", 
+            authDomain: "kawanarus.firebaseapp.com", 
+            projectId: "kawanarus", 
+            storageBucket: "kawanarus.firebasestorage.app", 
+            messagingSenderId: "228773711599", 
+            appId: "1:228773711599:web:92a76d505c440f4c5e151a", 
+            measurementId: "G-7E4DL0CJ75" 
+        };
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         
@@ -227,25 +226,17 @@ const firebaseConfig = {
             window.addEntryRow();
         });
 
-        // FUNGSI REFRESH COA DENGAN AUTO-FIX FORMAT TANGGAL
+        // FUNGSI REFRESH COA DENGAN FETCH (ANTI CORS/MIME ERROR)
         async function refreshCOA() {
             console.log("Memuat data COA dari server...");
             try {
-                // Gunakan JSONP untuk kompatibilitas file lokal
-                const cbName = 'cb_coa_jrn_' + Date.now();
-                const p = new Promise((resolve) => {
-                    window[cbName] = (data) => { resolve(data); delete window[cbName]; };
-                    const s = document.createElement('script');
-                    s.src = `${GAS_URL}?action=getCOA&callback=${cbName}`;
-                    document.body.appendChild(s);
-                });
-
-                const data = await p;
+                const res = await fetch(`${GAS_URL}?action=getCOA`);
+                const data = await res.json();
                 
-                if(data.success && data.data && data.data.length > 0) {
-                    coaData = data.data.map(acc => {
-                        let code = String(acc.kode || '').trim();
-                        let name = String(acc.nama_id || acc.name || '').trim();
+                if(data.status === 'success' && data.accounts && data.accounts.length > 0) {
+                    coaData = data.accounts.map(acc => {
+                        let code = String(acc.code || '').trim();
+                        let name = String(acc.name || '').trim();
                         
                         // Deteksi jika code adalah string tanggal rusak
                         if (code.match(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+Jan/) || /^\d{4}-\d{2}-\d{2}/.test(code)) {
@@ -269,18 +260,10 @@ const firebaseConfig = {
         async function generateNextNoBukti() {
             try {
                 const proofType = document.getElementById('proofType').value;
-                // Gunakan JSONP untuk GET request
-                const cbName = 'cb_nb_' + Date.now();
-                const p = new Promise((resolve) => {
-                    window[cbName] = (data) => { resolve(data); delete window[cbName]; };
-                    const s = document.createElement('script');
-                    s.src = `${GAS_URL}?action=getNextProofNumber&type=${proofType}&callback=${cbName}`;
-                    document.body.appendChild(s);
-                });
+                const res = await fetch(`${GAS_URL}?action=getNextProofNumber&type=${proofType}`);
+                const data = await res.json();
                 
-                const data = await p;
-                
-                if(data.success) {
+                if(data.status === 'success') {
                     const nextNum = String(data.nextNum).padStart(3, '0');
                     const now = new Date();
                     const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -484,7 +467,7 @@ const firebaseConfig = {
                     name = select.options[select.selectedIndex].text;
                     if (code.includes('Wed') || code.includes('Jan') || code === '???') {
                         isValid = false;
-                        alert("️ Akun yang dipilih memiliki kode rusak. Mohon pilih akun lain.");
+                        alert("⚠️ Akun yang dipilih memiliki kode rusak. Mohon pilih akun lain.");
                     }
                 }
                 
