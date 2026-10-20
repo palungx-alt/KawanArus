@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Kawan Arus - Login</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #1e40af;
+            --primary-glow: rgba(30, 64, 175, 0.15);
+            --bg-body: #f8fafc;
+            --surface: #ffffff;
+            --text-main: #0f172a;
+            --text-sec: #64748b;
+            --border: #e2e8f0;
+            --radius: 16px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        
+        body.login-page { 
+            min-height: 100vh; display: flex; align-items: center; justify-content: center; 
+            background: linear-gradient(135deg, #eff6ff 0%, #f8fafc 100%); padding: 20px; 
+        }
+
+        .login-box { 
+            background: var(--surface); border-radius: var(--radius); padding: 40px 30px; 
+            width: 100%; max-width: 420px; box-shadow: 0 10px 40px -10px rgba(0,0,0,0.08); 
+            border: 1px solid var(--border); text-align: center;
+        }
+
+        /* LOGO STYLING */
+        .login-logo {
+            width: 90px; height: auto; margin-bottom: 20px;
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.05));
+            transition: transform 0.3s ease;
+        }
+        .login-logo:hover { transform: scale(1.05); }
+
+        .login-header h1 { color: var(--primary); font-size: 26px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 5px; }
+        .login-header p { color: var(--text-sec); font-size: 14px; font-weight: 500; }
+        .company-name { font-weight: 700; color: var(--text-main); margin-top: 12px; font-size: 13px; letter-spacing: 0.5px; text-transform: uppercase; }
+
+        .form-group { margin-bottom: 20px; text-align: left; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 13px; color: var(--text-main); }
+        .input-wrapper { position: relative; }
+        .input-wrapper i.icon-left { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--text-sec); font-size: 16px; }
+        
+        .form-control { 
+            width: 100%; padding: 14px 16px 14px 44px; background: var(--bg-body); 
+            border: 1px solid var(--border); border-radius: 12px; font-size: 15px; outline: none; transition: 0.2s; 
+        }
+        .form-control:focus { border-color: var(--primary); background: white; box-shadow: 0 0 0 4px var(--primary-glow); }
+        
+        .toggle-password { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-sec); }
+        
+        .btn-login { 
+            width: 100%; padding: 16px; background: var(--primary); color: white; border: none; 
+            border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 10px; 
+            box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3); transition: 0.3s;
+        }
+        .btn-login:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(30, 64, 175, 0.4); }
+        .btn-login:disabled { opacity: 0.7; cursor: not-allowed; }
+
+        .error-message { background: #fef2f2; border: 1px solid #fecaca; color: #ef4444; padding: 12px; border-radius: 10px; margin-bottom: 20px; display: none; align-items: center; gap: 10px; font-size: 13px; text-align: left; }
+        .login-footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--border); color: var(--text-sec); font-size: 12px; }
+    </style>
+</head>
+<body class="login-page">
+    <div class="login-box">
+        <!-- LOGO INTEGRATION -->
+        <img src="assets/logo.png" alt="Logo Kawan Arus" class="login-logo" onerror="this.style.display='none'">
+        
+        <div class="login-header">
+            <h1>KAWAN ARUS</h1>
+            <p>Sistem Akuntansi & Keuangan Profesional</p>
+            <p class="company-name">Kawan Arus Management System</p>
+        </div>
+        
+        <form id="loginForm">
+            <div class="form-group">
+                <label>Email</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-envelope icon-left"></i>
+                    <input type="email" id="email" class="form-control" required placeholder="nama@kawanarus.com">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-lock icon-left"></i>
+                    <input type="password" id="password" class="form-control" required placeholder="Masukkan password">
+                    <button type="button" class="toggle-password" onclick="togglePass()"><i class="fas fa-eye"></i></button>
+                </div>
+            </div>
+            <div id="errorMessage" class="error-message"><i class="fas fa-exclamation-circle"></i> <span></span></div>
+            <button type="submit" class="btn-login" id="btnLogin"><i class="fas fa-sign-in-alt"></i> Masuk</button>
+        </form>
+        <div class="login-footer">
+            <p>&copy; 2026 Kawan Arus | Tangerang</p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAc12QQPnjqlaNmIzPl2OqfTrC0HP2YCWg",
+            authDomain: "finance-raj.firebaseapp.com",
+            projectId: "finance-raj",
+            storageBucket: "finance-raj.firebasestorage.app",
+            messagingSenderId: "138468278392",
+            appId: "1:138468278392:web:215731466beb7f89566d8d",
+            measurementId: "G-BMG4L7P2DP"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        function togglePass() {
+            const inp = document.getElementById('password');
+            const icn = document.querySelector('.toggle-password i');
+            if(inp.type==='password'){ inp.type='text'; icn.classList.replace('fa-eye','fa-eye-slash'); }
+            else { inp.type='password'; icn.classList.replace('fa-eye-slash','fa-eye'); }
+        }
+        window.togglePass = togglePass;
+
+        // Cek status login Firebase
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // Simpan data user dengan key 'kawanArusUser' agar konsisten dengan dashboard/approval
+                let storedUser = localStorage.getItem('kawanArusUser');
+                if (!storedUser) {
+                    storedUser = JSON.stringify({ 
+                        uid: user.uid, 
+                        email: user.email, 
+                        fullName: user.email.split('@')[0], 
+                        role: 'admin' 
+                    });
+                    localStorage.setItem('kawanArusUser', storedUser);
+                }
+                // Redirect ke dashboard setelah login sukses
+                window.location.href = 'dashboard.html';
+            }
+        });
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btnLogin');
+            const errDiv = document.getElementById('errorMessage');
+            const email = document.getElementById('email').value.trim();
+            const pass = document.getElementById('password').value.trim();
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
+            errDiv.style.display = 'none';
+
+            try {
+                await signInWithEmailAndPassword(auth, email, pass);
+                // onAuthStateChanged akan menangani redirect otomatis
+            } catch (error) {
+                console.error(error);
+                let msg = "Login gagal.";
+                if(error.code === 'auth/user-not-found') msg = "Email tidak terdaftar.";
+                else if(error.code === 'auth/wrong-password') msg = "Password salah.";
+                else if(error.code === 'auth/invalid-email') msg = "Format email tidak valid.";
+                
+                errDiv.querySelector('span').textContent = msg;
+                errDiv.style.display = 'flex';
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Masuk';
+            }
+        });
+    </script>
+</body>
+</html>
